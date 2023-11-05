@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<!--
+	Massively by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>Master's Thesis - Nathalia Kim</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+
+		<style>	
+			/* Clear the float to ensure content after floats properly */
+			.clearfix::after {
+				content: "";
+				clear: both;
+				display: table;
+			}
+		</style>
+	</head>
+	<body class="is-preload">
+
+		<!-- Wrapper -->
+			<div id="wrapper">
+
+				<!-- Header -->
+					<header id="header">
+						<a href="index.html" class="logo">Projects</a>
+					</header>
+
+				<!-- Nav -->
+				<nav id="nav">
+					<ul class="links">
+						<li class="active"><a href="index.html">Main Page</a></li>
+						<li class="active"><a href="masters.html">Master's Thesis</a></li>
+						<li><a href="generic.html">Generic Page</a></li>
+						<li><a href="elements.html">Elements Reference</a></li>
+					</ul>
+					<ul class="icons">
+						<li><a href="https://www.linkedin.com/in/nathalia-kim/" target="_blank" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
+						<li><a href="https://github.com/nathalia-kim" target="_blank" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
+					</ul>
+				</nav>
+
+				<!-- Main -->
+					<div id="main">
+
+						<!-- Post -->
+							<section class="post">
+								<header class="major">
+									<h1>Master's Thesis</h1>
+									<p>Brief overview of the models, algorithms and data analyses I developed during my Master's project.</p>
+								</header>
+								<div class="image main"><img src="images/imc_workflow.png" alt="" /></div>
+								<p>During my Master's project, I had the opportunity to work with two datasets from a cutting-edge technology called Imaging Mass Cytometry (IMC). IMC has applications in fields such as oncology and immunology research, allowing for in-depth analysis of tissue sections to gain a deeper understanding of various diseases. What sets IMC apart from traditional techniques is its capability to capture signals for as many as 40 parameters (biomarkers) from the same tissue section, resulting in high-dimensional images. The depth of information however also brings challenges in data processing. Therefore, my focus during my Master's was on building a computational pipeline to efficiently process these complex images.</p>
+								
+								<h3>Preprocessing</h3>
+									<p><span class="image left"><img src="images/masters_preprocessing.png" alt="" /></span>Image preprocessing involved overlaying different markers to understand the datasets and how different markers would co-localize with each other. Additionally, it involved applying a mathematical operation to remove artifact signals from the images. This particular operation is known as compensation of spillover and I applied the non-negative linear least squares (NNLS) method to retrieve the real signal.</p>
+							
+							<!-- Clear the float for the next element -->
+    						<div class="clearfix"></div>
+							<br>
+							<h3>Cell Segmentation</h3>
+									<p><span class="image right"><img src="images/masters_preprocessing.png" alt="" /></span>Image preprocessing involved overlaying different markers to understand the datasets and how different markers would co-localize with each other. Additionally, it involved applying a mathematical operation to remove artifact signals from the images. This particular operation is known as compensation of spillover and I applied the non-negative linear least squares (NNLS) method to retrieve the real signal.</p>
+
+							</section>
+
+
+					</div>
+
+				<!-- Footer -->
+				<footer id="footer">
+					<section class="split contact">
+						<section>
+							<h3>Email</h3>
+							<p><a>nathalia.yun@gmail.com</a></p>
+						</section>
+						<section>
+							<h3>Social</h3>
+							<ul class="icons alt">
+								<li><a href="https://www.linkedin.com/in/nathalia-kim/" target="_blank" class="icon brands alt fa-linkedin"><span class="label">LinkedIn</span></a></li>
+								<li><a href="https://github.com/nathalia-kim" target="_blank" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+							</ul>
+						</section>
+					</section>
+				</footer>
+
+				<!-- Copyright -->
+					<div id="copyright">
+						<ul><li>&copy; Untitled</li><li>Design: <a href="https://html5up.net">HTML5 UP</a></li></ul>
+					</div>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
