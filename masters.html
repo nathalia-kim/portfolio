@@ -55,16 +55,52 @@
 									<p>Brief overview of the models, algorithms and data analyses I developed during my Master's project.</p>
 								</header>
 								<div class="image main"><img src="images/imc_workflow.png" alt="" /></div>
-								<p>During my Master's project, I had the opportunity to work with two datasets from a cutting-edge technology called Imaging Mass Cytometry (IMC). IMC has applications in fields such as oncology and immunology research, allowing for in-depth analysis of tissue sections to gain a deeper understanding of various diseases. What sets IMC apart from traditional techniques is its capability to capture signals for as many as 40 parameters (biomarkers) from the same tissue section, resulting in high-dimensional images. The depth of information however also brings challenges in data processing. Therefore, my focus during my Master's was on building a computational pipeline to efficiently process these complex images.</p>
+								<p>During my Master's project, I had the opportunity to work with two datasets from a cutting-edge technology called <b>Imaging Mass Cytometry (IMC)</b>. IMC has applications in fields such as oncology and immunology research, allowing for in-depth analysis of tissue sections to gain a deeper understanding of various diseases. What sets IMC apart from traditional techniques is its capability to capture signals for as many as 40 parameters (biomarkers) from the same tissue section, resulting in <b>high-dimensional images</b>. The depth of information however also brings <b>challenges in data processing</b>. Therefore, my focus during my Master's was on building a computational pipeline to efficiently process these complex images.</p>
 								
 								<h3>Preprocessing</h3>
-									<p><span class="image left"><img src="images/masters_preprocessing.png" alt="" /></span>Image preprocessing involved overlaying different markers to understand the datasets and how different markers would co-localize with each other. Additionally, it involved applying a mathematical operation to remove artifact signals from the images. This particular operation is known as compensation of spillover and I applied the non-negative linear least squares (NNLS) method to retrieve the real signal.</p>
+									<p><span class="image left"><img src="images/masters_preprocessing.png" alt="" /></span>Image preprocessing involved overlaying different markers to understand the datasets and how different markers would co-localize with each other. Additionally, it involved applying a mathematical operation to remove artifact signals from the images. This particular operation is known as compensation of spillover and I applied the <b>non-negative linear least squares (NNLS)</b> method to retrieve the real signal, implemented in <b>R programming</b>.</p>
 							
 							<!-- Clear the float for the next element -->
     						<div class="clearfix"></div>
 							<br>
 							<h3>Cell Segmentation</h3>
-									<p><span class="image right"><img src="images/masters_preprocessing.png" alt="" /></span>Image preprocessing involved overlaying different markers to understand the datasets and how different markers would co-localize with each other. Additionally, it involved applying a mathematical operation to remove artifact signals from the images. This particular operation is known as compensation of spillover and I applied the non-negative linear least squares (NNLS) method to retrieve the real signal.</p>
+							<p><span class="image right"><img src="images/masters_cellsegmentation.gif" alt="" /></span>Cell segmentation is an instance segmentation task where the goal is to classify which pixels in an image correspond to each individual biological cell. Here I fine-tuned a pretrained <b>deep learning</b> model called Mesmer. The model is built using <b>TensorFlow</b> with a <b>ResNet50 backbone</b>. For generating multi-scale feature maps, a <b>Feature Pyramid Network (FPN)</b> is connected to the backbone with four semantic heads, and are used for separate pixel-level predictions. 
+							<br>
+							Segmenting cells can pose a considerable challenge, given factors like image resolution and the close proximity of cells. However, this model was able to generate <b>high quality segmentation masks</b> across both datasets. Over <b>330,000 cells</b> were segmented for both datasets combined.</p>
+
+							
+							<h3>Cell Feature Extraction</h3>
+							<p>Utilizing the preprocessed data and cell segmentation masks, I extracted a variety of <b>numerical features</b> from the images into a <b>tabular format</b>. These features are related to cell morphology such as area and diameter, as well as proteomic features computed by the mean expression of each marker (image dimension) within every cell. All features were extracted using the regionprops function of the <b>scikit-image Python package</b>. Prior to feature quantification, the data was windsorized to the <b>99.9th percentile for outlier removal</b>.</p>
+							<div class="image fit"><img src="images/masters_features.png" alt="" /></div>
+
+							<h3>Cell Type Classification (Cell Phenotyping)</h3>
+							<p><span class="image right"><img src="images/masters_phenotyping.png" alt="" width="800" height="" /></span>The next step in the pipeline was to classify cell types based on the extracted features.  Given that distinct cell types exhibit specific protein marker expression patterns, cell classification can be achieved by analyzing the protein marker expression pattern of each cell (marker features). For this purpose, I used a <b>fully-connected neural network model</b> implemented using <b>PyTorch</b>. Input data was <b>normalized by an arcsinh transformation</b> with a cofactor of 5. The model used a <b>leaky ReLU activation function</b> and <b>Adam optimizer</b> with a learning rate of 2e-4. The output of the model was a probability table listing the likelihood of each individual cell being of each cell type of interest.
+							<br>
+							<span class="image left"><img src="images/masters_phenotyping2.png" alt=""/></span>
+							This process demanded <b>rigorous validation</b> to ensure accurate cell classification. Collaboration with biomedical researchers with expert knowledge was critical, as well as quantifying and visualizing data from many different perspectives. This <b>iterative approach</b>, involving distinct steps for various cell populations, resulted in the successful <b>classification of 23 distinct, spatially resolved cell types</b>.</p>
+
+							<h3>Neighborhood and Spatial Analysis</h3>
+							<p>The last step in the pipeline was the <b>analysis of spatial patterns</b> and <b>neighborhood interactions</b> between different cell types. This analysis is of significant biological importance and has been linked in the literature to therapeutic outcomes and patient survival. </p>
+							<div class="image fit"><img src="images/masters_graph.png" alt="" /></div>
+							<p>To encode the spatial organization of a tissue, I adopted a <b>graph representation</b> where nodes represent cells and edges represent spatial interaction (example in the figure above). All implementation was done using <b>Python</b>. The spatial neighbors were computed using a <b>k-nearest neighbors</b> approach.</p>
+							<span class="image right"><img src="images/masters_spatial.png" alt=""/></span>
+							<p>Several <b>spatial metrics</b> and <b>graph properties</b> were evaluated in this analysis, such as a neighborhood enrichment test (evaluates if the neighborhood of cell types are enriched or depleted by other cell types), spatial connectivity analysis, node degree centrality calculation, and co-occurence analysis of cell types across spatial dimensions. The <b>results</b> involved a deeper understanding on how cell types spatially interact with each other and <b>patterns</b> of clustered cells that might be linked with disease progression.</p>
+
+							<h3>Gallery</h3>
+							<div class="box alt">
+								<div class="row gtr-50 gtr-uniform">
+									<div class="col-4"><span class="image fit"><img src="images/masters_gallery1.png" alt="" /></span></div>
+									<div class="col-4"><span class="image fit"><img src="images/masters_gallery2.png" alt="" /></span></div>
+									<div class="col-4"><span class="image fit"><img src="images/masters_gallery3.png" alt="" /></span></div>
+									<!-- Break -->
+									<div class="col-4"><span class="image fit"><img src="images/masters_gallery4.png" alt="" /></span></div>
+									<div class="col-4"><span class="image fit"><img src="images/masters_gallery5.png" alt="" /></span></div>
+									<div class="col-4"><span class="image fit"><img src="images/masters_gallery6.png" alt="" /></span></div>
+									<!-- Break -->
+									<div class="col-4"><span class="image fit"><img src="images/masters_gallery7.jpg" alt="" /></span></div>
+									<div class="col-4"><span class="image fit"><img src="images/masters_gallery8.png" alt="" /></span></div>
+									<div class="col-4"><span class="image fit"><img src="images/masters_gallery9.png" alt="" /></span></div>
+								</div>
 
 							</section>
 
