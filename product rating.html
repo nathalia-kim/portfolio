@@ -33,14 +33,14 @@
 					<header id="header">
 						<a href="index.html" class="logo">Projects</a>
 					</header>
-
 				<!-- Nav -->
 				<nav id="nav">
 					<ul class="links">
 						<li class="active"><a href="index.html">Main Page</a></li>
+						<li class="active"><a href="about.html">About Me</a></li>
 						<li class="active"><a href="masters.html">Master's Thesis</a></li>
 						<!--<li><a href="generic.html">Generic Page</a></li>
-						<li><a href="elements.html">Elements Reference</a></li>-->
+						<li><a href="elements.html">Elements Reference</a></li> -->
 					</ul>
 					<ul class="icons">
 						<li><a href="https://www.linkedin.com/in/nathalia-kim/" target="_blank" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
@@ -61,7 +61,7 @@
 								<h3>Problem Formulation</h3>
 								<p>This is a <b>classification problem</b> where the goal is to classify products into 5 different ratings based on product features (tabular data). The dataset used contains products from the website <b>wish.com</b>. This <b>classifier</b> would be valuable for individuals looking to list a new product on wish.com, allowing them to <b>anticipate the likely rating</b> it would receive before the product's actual listing. Moreover, such a classifier contributes to a deeper understanding of the factors that lead to higher product ratings, offering <b>insights into the customer base's preferences and behaviors</b>. 
 								<br>
-								This project involves the <b>following steps</b>: explore the dataset (<b>EDA</b>), perform <b>data preprocessing</b> (data is not clean) and <b>feature selection</b>, <b>experiment with different models</b> and <b>fine-tune hyperparameters</b>.</p>
+								This project involves the <b>following steps</b>: explore the dataset (<b>EDA</b>), perform <b>data preprocessing</b> (data is not clean), <b>feature selection</b>, <b>experiment with different models</b> and <b>fine-tune hyperparameters</b>.</p>
 								<h3>Exploratory data analysis</h3>
 								<p style="margin: 0; padding: 0;">The data is split into training and testing sets: 
 									<pre><code  style="margin: 0; padding: 0;" class="language-python"># view rating distribution  										
@@ -74,7 +74,7 @@ Xy_train.rating.hist()</code></pre></p>
 								<div class="image left" style="margin-top: 0; padding-top: 0;"><img src="images/product rating/eda_1.png" alt="" /></div>
 								<div class="clearfix"></div>
 
-								<p style="margin: 0; padding: 0;">It's interesting to note that the classes are very <b>imbalanced</b>, with the majority of the products having rating 4. There was a single product with rating 6 which I dropped as the value was not allowed. I also looked at the <b>correlations</b> between different features:</p>
+								<p style="margin: 0; padding: 0;">It's interesting to note that the classes are very <b>imbalanced</b>, with the majority of the products having rating 4. There was a single product with rating 6 which was excluded as the value was not allowed. I also looked at the <b>correlations</b> between different features:</p>
 
 								<pre><code  style="margin: 0; padding: 0;" class="language-python">import seaborn as sns
 import matplotlib.pyplot as plt
@@ -125,7 +125,7 @@ imp_missing.fit(Xy_categorical)
 Xy_s_categorical = imp_missing.transform(Xy_categorical)
 Xy_categorical = pd.DataFrame(Xy_s_categorical, columns = categorical_features, index = Xy_categorical.index)</code></pre>
 							
-							<p style="margin: 0; padding: 0;">Finally, updated Xy_train and X_train with preprocessed features:</p>
+							<p style="margin: 0; padding: 0;">Finally, Xy_train and X_train were updated with the preprocessed features:</p>
 							<pre><code style="margin: 0; padding: 0;" class="language-python"># Update Xy_train and X_train
 frames = [Xy_scaled, Xy_categorical]
 Xy_train = pd.concat(frames, axis = 1)
@@ -171,7 +171,7 @@ y_pred = grid_search.predict(X_test) </code></pre>
 							<p>This model had an <b>F1 score</b> of <b>0.7548</b> on the training data and <b>0.7782</b> on the testing data.</p>
 							<h4> </h4>
 							<h4>Random Forest</h4>
-							<p style="margin: 0; padding: 0;">For the random forest model, instead of doing an extensive <b>feature selection</b> as a preprocessing step, I encoded some categorical features to number and increased the number of features, since random forest inherently applies feature selection on the data. <b>GridSearch</b> was also used for <b>hyperparameter search</b> on a new set of features.</p>
+							<p style="margin: 0; padding: 0;">For the random forest model, instead of doing an extensive <b>feature selection</b> as a preprocessing step, I encoded some categorical features to numberical values and increased the number  of features, since random forest inherently applies feature selection on the data. <b>GridSearch</b> was also used for <b>hyperparameter search</b> on a new set of features.</p>
 							<pre><code style="margin: 0; padding: 0;" class="language-python">from sklearn.ensemble import RandomForestClassifier
 
 # estimator using random forest
