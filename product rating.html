@@ -1,0 +1,274 @@
+<!DOCTYPE HTML>
+<!--
+	Massively by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>Product Rating Prediction</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+		<link rel="stylesheet" href="assets/css/prism.css">
+		<script src="assets/js/prism.js"></script>
+
+		<style>	
+			/* Clear the float to ensure content after floats properly */
+			.clearfix::after {
+				content: "";
+				clear: both;
+				display: table;
+			}
+		</style>
+
+	</head>
+	<body class="is-preload">
+
+		<!-- Wrapper -->
+			<div id="wrapper">
+
+				<!-- Header -->
+					<header id="header">
+						<a href="index.html" class="logo">Projects</a>
+					</header>
+
+				<!-- Nav -->
+				<nav id="nav">
+					<ul class="links">
+						<li class="active"><a href="index.html">Main Page</a></li>
+						<li class="active"><a href="masters.html">Master's Thesis</a></li>
+						<li><a href="generic.html">Generic Page</a></li>
+						<li><a href="elements.html">Elements Reference</a></li>
+					</ul>
+					<ul class="icons">
+						<li><a href="https://www.linkedin.com/in/nathalia-kim/" target="_blank" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
+						<li><a href="https://github.com/nathalia-kim" target="_blank" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
+					</ul>
+				</nav>
+
+				<!-- Main -->
+					<div id="main">
+
+						<!-- Post -->
+							<section class="post">
+								<header class="major">
+									<h1>Product Rating Prediction</h1>
+									<p>Predict product ratings (1 to 5) based on various product attributes. (<strong>Key concepts</strong>: data preprocessing, XGBoost, Random forest, Logistic regression)</p>
+								</header>
+								<div class="image main"><img src="images/wish_1.png" alt="" /></div>
+								<h3>Problem Formulation</h3>
+								<p>This is a <b>classification problem</b> where the goal is to classify products into 5 different ratings based on product features (tabular data). The dataset used contains products from the website <b>wish.com</b>. This <b>classifier</b> would be valuable for individuals looking to list a new product on wish.com, allowing them to <b>anticipate the likely rating</b> it would receive before the product's actual listing. Moreover, such a classifier contributes to a deeper understanding of the factors that lead to higher product ratings, offering <b>insights into the customer base's preferences and behaviors</b>. 
+								<br>
+								This project involves the <b>following steps</b>: explore the dataset (<b>EDA</b>), perform <b>data preprocessing</b> (data is not clean) and <b>feature selection</b>, <b>experiment with different models</b> and <b>fine-tune hyperparameters</b>.</p>
+								<h3>Exploratory data analysis</h3>
+								<p style="margin: 0; padding: 0;">The data is split into training and testing sets: 
+									<pre><code  style="margin: 0; padding: 0;" class="language-python"># view rating distribution  										
+X_test = pd.read_csv('/content/drive/My Drive/Colab Notebooks/Product Rating Prediction/test_new.csv', sep=',', header=0)
+testing_ids = X_test.id
+print('Training size =', len(X_train))
+print('Testing size =', len(X_test))
+Xy_train.rating.hist()</code></pre></p>
+								<p style="margin: 0; padding: 0;"><code>Training size = 1094 Testing size = 479</code></p>
+								<div class="image left" style="margin-top: 0; padding-top: 0;"><img src="images/product rating/eda_1.png" alt="" /></div>
+								<div class="clearfix"></div>
+
+								<p style="margin: 0; padding: 0;">It's interesting to note that the classes are very <b>imbalanced</b>, with the majority of the products having rating 4. There was a single product with rating 6 which I dropped as the value was not allowed. I also looked at the <b>correlations</b> between different features:</p>
+
+								<pre><code  style="margin: 0; padding: 0;" class="language-python">import seaborn as sns
+import matplotlib.pyplot as plt
+
+# plot correlation heatmap
+fig, ax = plt.subplots(figsize=(20,8)) 
+sns.heatmap(data = Xy_train.corr().round(2), annot=True)</code></pre></p>
+								<div class="image main" style="margin-top: 0; padding-top: 0;"><img src="images/product rating/eda_2.png" alt="" /></div>
+								<p>The <b>correlation heatmap</b> is helpful to have a better <b>understanding of the product features</b> and how they correlate with the <b>product rating</b>. The feature <code>has_urgency_banner</code> appears empty in the heatmap since it only has Nan values. This correlation analysis is also helpful for <b>feature selection</b>.</p>
+
+								<h3>Feature Selection</h3>
+								For this dataset, there are certain features that are categorical and others numerical. <b>Feature selection</b> involved exploring the product features to understand the distribution of their <b>unique values</b>, their <b>data types</b>, <b>missing values</b>, <b>correlation</b> heatmap and some <b>intuition</b>.  
+								<pre><code  style="margin: 0; padding: 0;" class="language-python">categorical_features = ['uses_ad_boosts', 'rating', 'badges_count', 'badge_local_product', 
+									'badge_product_quality', 'badge_fast_shipping', 'shipping_option_price', 
+									'shipping_is_express', 'origin_country', 'merchant_has_profile_picture', 
+									'countries_shipped_to', 'product_color', 'product_variation_size_id', 
+									'shipping_option_name', 'merchant_title', 'merchant_name', 
+									'merchant_info_subtitle', 'merchant_profile_picture']
+numeric_features = Xy_train.columns[~Xy_train.columns.isin(categorical_features)]</code></pre></p>
+								
+								<h3>Data Preprocessing</h3>
+								<p style="margin: 0; padding: 0;">It's crucial to separate the <b>categorical and numerical features</b> because distinct preprocessing techniques need to be employed for each type. For the numerical features, I applied <b>normalization</b>, <b>standardization</b> and <b>filled missing values</b> with the median:</p>
+								<pre><code  style="margin: 0; padding: 0;" class="language-python">from sklearn import preprocessing
+from sklearn.impute import SimpleImputer
+import numpy as np
+
+# get numeric and categorical columns
+Xy_numeric = Xy_train[[*numeric_features]]
+Xy_categorical = Xy_train[[*categorical_features]]
+
+# missing values
+imp_median = SimpleImputer(missing_values = np.nan, strategy='median')
+imp_median.fit(Xy_numeric)
+Xy_scaled = imp_median.transform(Xy_numeric)
+
+# normalization
+Xy_scaled = preprocessing.normalize(Xy_scaled, norm = 'l2')
+Xy_scaled = pd.DataFrame(Xy_scaled, columns = Xy_numeric.columns, index = Xy_numeric.index)
+
+# standardization
+Xy_scaled = preprocessing.scale(Xy_scaled)
+Xy_scaled = pd.DataFrame(Xy_scaled, columns = Xy_numeric.columns, index = Xy_numeric.index)</code></pre>
+
+							<p style="margin: 0; padding: 0;" >And for <b>categorical features</b> the <b>missing values</b> were filled with a constant:</p>
+							<pre><code  style="margin: 0; padding: 0;" class="language-python"># missing values
+imp_missing = SimpleImputer(strategy='constant', fill_value='missing')
+imp_missing.fit(Xy_categorical)
+Xy_s_categorical = imp_missing.transform(Xy_categorical)
+Xy_categorical = pd.DataFrame(Xy_s_categorical, columns = categorical_features, index = Xy_categorical.index)</code></pre>
+							
+							<p style="margin: 0; padding: 0;">Finally, updated Xy_train and X_train with preprocessed features:</p>
+							<pre><code style="margin: 0; padding: 0;" class="language-python"># Update Xy_train and X_train
+frames = [Xy_scaled, Xy_categorical]
+Xy_train = pd.concat(frames, axis = 1)
+X_train = Xy_train.drop(columns = ['rating'])
+y_train = Xy_train[['rating']]
+y_train = y_train.apply(pd.to_numeric) </code></pre>
+							<br>
+							<h3>Model Tuning</h3>
+							During model tuning, I experimented with <b>three different models</b> to evaluate performance: <b>XGBoost</b>, <b>Random forest</b>, and <b>Logistic regression</b>. For each model, a number of parameters were fine-tuned and different variances of the model were implemented. 
+							<h4> </h4>
+							<h4>Evaluation metric</h4> 
+							The evaluation metric I used for this project was the <b>mean F1-score</b>. The F1 metric <b>weighs recall and precision equally</b>, and a good retrieval algorithm will maximize both precision and recall simultaneously. Thus, moderately good performance on both will be favored over extremely good performance on one and poor performance on the other.
+							Below is a summary of each of the model that was tested.
+							<h4> </h4>
+							<h4>XGBoost</h4>
+							The first model I experimented with was XGBoost. I used <b>GridSearch</b> for exhaustive <b>hyperparameter search</b> and <b>5-fold cross validation</b> as the experimental protocol:
+							<pre><code style="margin: 0; padding: 0;" class="language-python">from sklearn.model_selection import GridSearchCV
+from xgboost.sklearn import XGBClassifier
+from sklearn.pipeline import Pipeline
+
+regr = Pipeline([('regressor', XGBClassifier(objective='multi:softmax', seed=1))])
+
+# `__` denotes attribute 
+# hyper-parameters to be explored and allowed values 
+param_grid = {
+	'regressor__n_estimators': [100, 300],
+	'regressor__max_depth':[20, 30],
+	'regressor__min_child_weight':[4,5,6],
+	'regressor__learning_rate': [0.1, 0.01]
+}
+
+# hyper-parameter tuning - exaustively explores values from param_grid
+# use 5-fold cross validation
+grid_search = GridSearchCV(
+	regr, param_grid, cv=5, verbose=3, n_jobs=2, 
+	scoring='f1_micro')
+
+# fit the model to the training data
+grid_search.fit(X_train, y_train.values.ravel())
+
+# Prediction 
+y_pred = grid_search.predict(X_test) </code></pre>
+							<p>This model had an <b>F1 score</b> of <b>0.7548</b> on the training data and <b>0.7782</b> on the testing data.</p>
+							<h4> </h4>
+							<h4>Random Forest</h4>
+							<p style="margin: 0; padding: 0;">For the random forest model, instead of doing an extensive <b>feature selection</b> as a preprocessing step, I encoded some categorical features to number and increased the number of features, since random forest inherently applies feature selection on the data. <b>GridSearch</b> was also used for <b>hyperparameter search</b> on a new set of features.</p>
+							<pre><code style="margin: 0; padding: 0;" class="language-python">from sklearn.ensemble import RandomForestClassifier
+
+# estimator using random forest
+rfc = Pipeline([('regressor', RandomForestClassifier())])
+
+# hyper-parameters to be explored and allowed values
+param_grid = {
+	'regressor__n_estimators' : [50, 100],
+	'regressor__max_features' : [3, 5, 7],
+	'regressor__min_samples_split' : [100, 200, 300],
+	'regressor__max_leaf_nodes' : [10, 20, 30],
+	'regressor__max_depth': [5, 7, 10]
+}
+
+# hyper-parameter tuning - exaustively explores values from param_grid
+# use 5-fold cross validation
+grid_search = GridSearchCV(
+	rfc, param_grid, cv=5, verbose=3, n_jobs=2, 
+	scoring='f1_micro')
+
+# fit the model to the training data
+grid_search.fit(X_train, y_train.values.ravel())
+
+# Prediction 
+y_pred = grid_search.predict(X_test)</code></pre>
+							<p>This model had an <b>F1 score</b> of <b>0.7667</b> on the training data and <b>0.7699</b> on the testing data.</p>
+							<h4> </h4>
+							<h4>Logistic Regression</h4>
+							<p style="margin: 0; padding: 0;">The last model I experimented with was <b>Logistic Regression</b>. </p>
+							<pre><code style="margin: 0; padding: 0;" class="language-python">from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+
+# estimator using logistic regression 
+logregr = Pipeline([('regressor', LogisticRegression())])
+
+# hyper-parameters to be explored and allowed values
+param_grid = {
+	'regressor__max_iter': [6000, 7000],
+	'regressor__penalty': ['l2'],
+	'regressor__C': [0.001, 0.01, 0.1, 1, 10, 100, 1000]
+}
+
+# exaustively explores values from param_grid
+grid_search = GridSearchCV(
+	logregr, param_grid, cv=5, verbose=3, n_jobs=2,
+	scoring='f1_micro')
+
+# fit the model to the training data
+grid_search.fit(X_train, y_train.values.ravel())
+
+# Prediction 
+y_pred = grid_search.predict(X_test)</code></pre>
+							<p>This model had an <b>F1 score</b> of <b>0.7356</b> on the training data and <b>0.7448</b> on the testing data.</p>	
+
+							<h3>Conclusions</h3>
+							<p>In this project, I successfully navigated through the <b>entire model building process</b>, starting with a noisy and uncleaned dataset of product features from wish.com. I gained a better understanding of the data through <b>exploratory data analysis</b>, carefully <b>selected features</b> based on specific criteria, applied different <b>data preprocessing</b> techniques, and <b>fine-tuned and evaluated three distinct models</b>. The <b>top-performing</b> model turned out to be <b>XGBoost</b>, achieving an <b>F1 score of 0.7782</b>.
+							<br>
+							Several factors could account for why a higher F1 score was not achieved. These factors may be related to <b>low correlation</b> between available product features and rating, <b>dataset size</b>, and certain limitations or parameters within the <b>models</b>. Nevertheless, this project serves as a notable example of a <b>real-world application</b> employing <b>conventional classification models</b>. </p>
+							</section>
+
+					</div>
+
+				<!-- Footer -->
+				<footer id="footer">
+					<section class="split contact">
+						<section>
+							<h3>Email</h3>
+							<p><a>nathalia.yun@gmail.com</a></p>
+						</section>
+						<section>
+							<h3>Social</h3>
+							<ul class="icons alt">
+								<li><a href="https://www.linkedin.com/in/nathalia-kim/" target="_blank" class="icon brands alt fa-linkedin"><span class="label">LinkedIn</span></a></li>
+								<li><a href="https://github.com/nathalia-kim" target="_blank" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+							</ul>
+						</section>
+					</section>
+				</footer>
+
+				<!-- Copyright -->
+					<div id="copyright">
+						<ul><li>&copy; Untitled</li><li>Design: <a href="https://html5up.net">HTML5 UP</a></li></ul>
+					</div>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+			<script> Prism.highlightAll(); </script>
+			  
+
+	</body>
+</html>
