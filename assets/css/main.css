@@ -256,12 +256,15 @@ input, select, textarea {
 		font-family: "Courier New", monospace;
 		font-size: 0.9rem;
 		margin: 0 0 2rem 0;
+		max-height: 300px; /* desired fixed height */
+    	overflow-y: auto; /* Add a vertical scrollbar if needed */
 	}
 
 		pre code {
 			display: block;
 			line-height: 1.75;
 			padding: 1rem 1.5rem;
+			white-space: pre-wrap; /* Preserve line breaks */
 			overflow-x: auto;
 		}
 

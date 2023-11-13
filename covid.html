@@ -1,0 +1,370 @@
+<!DOCTYPE HTML>
+<!--
+	Massively by HTML5 UP
+	html5up.net | @ajlkn
+	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
+-->
+<html>
+	<head>
+		<title>Chest X-Ray COVID-19 Classification</title>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+		<link rel="stylesheet" href="assets/css/main.css" />
+		<noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+
+		<link rel="stylesheet" href="assets/css/prism.css">
+		<script src="assets/js/prism.js"></script>
+
+		<style>	
+			/* Clear the float to ensure content after floats properly */
+			.clearfix::after {
+				content: "";
+				clear: both;
+				display: table;
+			}
+		</style>
+	</head>
+	<body class="is-preload">
+
+		<!-- Wrapper -->
+			<div id="wrapper">
+
+				<!-- Header -->
+					<header id="header">
+						<a href="index.html" class="logo">Projects</a>
+					</header>
+
+		<!-- Nav -->
+		<nav id="nav">
+			<ul class="links">
+				<li class="active"><a href="index.html">Main Page</a></li>
+				<li class="active"><a href="about.html">About Me</a></li>
+				<li class="active"><a href="masters.html">Master's Thesis</a></li>
+				<!--<li><a href="generic.html">Generic Page</a></li>
+				<li><a href="elements.html">Elements Reference</a></li> -->
+			</ul>
+			<ul class="icons">
+				<li><a href="https://www.linkedin.com/in/nathalia-kim/" target="_blank" class="icon brands fa-linkedin"><span class="label">LinkedIn</span></a></li>
+				<li><a href="https://github.com/nathalia-kim" target="_blank" class="icon brands fa-github"><span class="label">GitHub</span></a></li>
+			</ul>
+		</nav>
+
+				<!-- Main -->
+					<div id="main">
+
+						<!-- Post -->
+							<section class="post">
+								<header class="major">
+									<h1>Chest X-Ray COVID-19 Classification</h1>
+									<p>Predict if a chest X-ray image is COVID-19 positive or negative using four different neural network architectures. (<b>Key concepts</b>: deep learning, computer vision, CNN, VGG16, ResNet, TensorFlow)</p>
+								</header>
+								<div class="image main"><img src="images//covid/cover.png" alt="" /></div>
+								<h3>Problem Formulation</h3>
+								<p>In this project, the goal is to predict if a <b>chest X-ray image is COVID-19 positive or negative</b> by building and training <b>neural network models</b>. The images were collected from different sources, were taken in different machines, and have different resolutions. The dataset is relatively small and therefore the results are less predictable. Nevertheless, the goal of this project is to have an <b>end-to-end learning framework</b>, running experiments with different model architectures and evaluating the results.  </p>
+								<h3 >Exploratory Data Analysis</h3>
+								<p style="margin: 0; padding: 0;">First let's <b>load</b> the data:</p>
+									<pre><code  style="margin: 0; padding: 0;" class="language-python">from PIL import Image
+import pandas as pd
+import os
+import numpy as np
+
+def load_data(folder):
+	images = []
+	for file in os.listdir(folder):
+		file_id = file.replace('.png', '')
+		# read image, convert to 8-bit gray scale with alpha and resize
+		image = Image.open(
+			os.path.join(folder, file)
+		).convert('LA').resize((256, 256))
+		# get numpy array of image 
+		arr = np.array(image)
+		# add image id and array to list 
+		images.append((int(file_id), arr))
+	# sort list 
+	images.sort(key=lambda i: i[0])
+	return np.array([v for _id, v in images])
+
+# load train images 
+x_train = load_data(PARENT_PATH + 'train/train')
+# read train infection labels 
+y_train = pd.read_csv(PARENT_PATH + 'y_train.csv')['infection']
+# load test images 
+x_test = load_data(PARENT_PATH + 'test/test')</code></pre></p>
+
+								<p style="margin: 0; padding: 0;">Next let's check the training set <b>dimensions</b>:</p>
+								<pre ><code  style="margin: 0; padding: 0;" class="language-python">x_train.shape</code></pre>
+								<code style="margin: 0; padding: 0;">(487, 256, 256, 2)</code>
+								<p style="margin: 0; padding: 0;">That means we have 487 images in our training set, each image has dimensions 256 x 256 with 2 channels. Now let's <b>visualize</b> some images:</p>
+								<pre ><code  style="margin: 0; padding: 0;" class="language-python">import matplotlib.pyplot as plt
+
+# get 5 covid and 5 normal samples
+covid_samples = (x_train[y_train==1][0:5])
+normal_samples = (x_train[y_train==0][0:5])
+samples = np.append(covid_samples, normal_samples, axis = 0)
+
+fig, ax = plt.subplots(2,5, figsize=(25,10))
+for i in range(10):
+	img = samples[i]
+	ax[i//5, i%5].imshow(img[:,:,0], cmap='gray')
+	if i < 5:
+		ax[i//5, i%5].set_title("COVID-19")
+	else:
+		ax[i//5, i%5].set_title("Normal")
+	ax[i//5, i%5].axis('off')
+	ax[i//5, i%5].set_aspect('auto')
+plt.show()</code></pre>
+							<div class="image main"><img src="images//covid/eda_viz.png" alt="" /></div>
+							<p style="margin: 0; padding: 0;">And see the <b>distribution</b> of COVID-19 positive and negative in the training set:</p>
+							<pre ><code  style="margin: 0; padding: 0;" class="language-python">print('Training size =', len(x_train))
+print('Training labels size =', len(y_train))
+print('Testing size =', len(x_test))
+y_train.hist()</code></pre>
+							<code>Training size = 487;
+								Training labels size = 487;
+								Testing size = 210</code>
+							<div class="image left"><img src="images//covid/eda_plot.png" alt="" /></div>
+							<div class="clearfix"></div>
+							<p>So it seems we don't have any missing labels and there is almost double of COVID-19 positives than negatives in the training set. The testing set has 210 images, which is less than half of the training set. One of the challenges of this project certainly is the small size of the dataset.</p>
+
+							<h2>Model Tuning</h2>
+							<p >During model tuning, I experimented with <b>four different neural network architectures</b> to evaluate performance:</p>
+
+							<ul>
+								<li>Fully-connected neural network built from scratch</li>
+								<li>Convolutional neural network (<b>CNN</b>) built from scratch</li>
+								<li><b>Transfer learning</b> from a <b>VGG16</b> network pre-trained on ImageNet</li>
+								<li><b>Transfer learning</b> from a <b>ResNet50</b> network pre-trained on ImageNet</li>
+							</ul>
+
+							<p>The neural networks <b>increase in complexity</b> as we move down the list. This was crutial to establish a baseline understanding of how both simple and complex models would perform on this problem, serving as a <b>proof-of-concept</b>. For each model, a wide range of <b>hyperparameters</b> were fine-tuned and several variances of the models were implemented, but here I will share a <b>summary</b> of the structure and optimization of the models.</p>
+
+							<h3>Evaluation Metric</h3>
+							<p style="margin: 0; padding: 0;">The evaluation metrics that were used for this project are <b>binary accuracy</b> and <b>AUROC</b> (area under receiver operating characteristic curve). <b>Binary accuracy</b> represents the frequency with which the predicted values match with actual values for binary labels. The ROC curve plots the true positive rate (TPR) against the false positive rate (FPR) - percentage of false predictions that are true:</p>
+
+							<div class="image left"><img src="images//covid/AUROC.png" alt="" /></div>
+							<div class="clearfix"></div>
+
+							<p>Therefore, the <b>ROC curve</b> serves as an effective means to visually assess the performance of a binary classifier. The <b>AUROC</b> quantifies the area under the ROC curve, providing a measure to evaluate the general performance of the model without setting a specific threshold and irrespective of the class distribution. </p>
+
+
+							<h3>Fully-connected Neural Network</h3>
+							<p>The first model I experimented with was a <b>simple</b>, fully-connected neural network built from <b>scratch</b>. The model has an initial layer to <b>flatten</b> the input image to an 1D array, then a couple of <b>dense layers</b> with 64 and 32 nodes each followed by <b>dropout layers</b> for <b>regularization</b>. The last layer is composed of a single node used for prediction of the output using the <b>Sigmoid</b> as the <b>activation function</b>:</p>
+							<pre ><code  style="margin: 0; padding: 0;" class="language-python">import tensorflow as tf
+from tensorflow.keras.layers import Flatten, Dense, Dropout, Input
+ 
+def build():
+	# specify input shape. Output shape: [(None, 256, 256, 2)] 
+	img_in = Input(shape=(256, 256, 2))
+
+	# flatten image to 1D array. Output shape: (None, 131072)
+	flattened = Flatten()(img_in)
+
+	# define first layer, 64 nodes. Output shape: (None, 64)
+	fc1 = Dense(64)(flattened)
+
+	# applies dropout to the input at input rate. Output shape: (None, 64)
+	fc1 = Dropout(0.3)(fc1)
+
+	# define second layer, 32 nodes. Output shape: (None, 32)
+	fc2 = Dense(32)(fc1)
+
+	# applies dropout to the input at input rate. Output shape: (None, 32)
+	fc2 = Dropout(0.3)(fc2)
+
+	# last layer, single node for prediction, use sigmoid as activation function 
+	# output shape: (None, 1)
+	output = Dense(1, activation = 'sigmoid')(fc2)
+
+	model = tf.keras.Model(inputs=img_in, outputs=output)
+	return model
+ 
+model = build()
+
+# use Adam optimizer and binary cross entropy as objective function 
+# binary accuracy and AUC as metrics to be evaluated by the model
+model.compile(
+		optimizer=tf.keras.optimizers.Adam(),
+		loss='binary_crossentropy',
+		metrics=['BinaryAccuracy', 'AUC']
+		)
+
+model.summary() </code></pre>
+							<div style="width: 450px; height: auto;"><img src="images/covid/fcnn.png" alt="" style="width: 100%; height: auto;" /></div>
+							<div class="clearfix"></div>
+							<p style="margin: 0; padding: 0;" >Now we can <b>train the model</b> for the number of <b>epochs</b> defined below. The <b>batch size</b> is related to the number of samples per gradient update and the <b>validation split</b> defines the fraction of the training data to be used as validation data:</p>
+							<pre style="margin: 0; padding: 0;"><code  style="margin: 0; padding: 0;" class="language-python"># define number of epochs and batch size 
+epochs = 100
+batch_size = 64
+
+# x_train is the input data, y_train is the target data 
+adam_history = model.fit(x = x_train, y = y_train,
+					batch_size = batch_size, validation_split=0.3, epochs=epochs)
+
+plot_performance(history)
+
+# use the trained model to do a prediction on test data 
+y_test = model.predict(x_test)</code></pre>
+
+							<div class="image fit"><img src="images//covid/fcnn_plot_performance.png" alt="" /></div>
+
+							<p>From the performance plots, we can see that both <b>accuracy</b> and <b>AUC</b> metrics exhibited substantial <b>oscillations</b> throughout the training process, reaching approximately 0.7 for both. This model got an AUC score of 0.62 on the test data, which is not very optimal. In practice, a <b>fully-connected neural network model isn't the best suited for processing imaging data</b> due to its need for a large number of parameters to interpret imaging features. This model is susceptible to <b>overfitting</b> and doesn't effectively address the <b>position invariance problem</b> associated with imaging features. To tackle these issues, a more suitable model would be a <b>convolutional neural network</b>, and that's the model I'll be experimenting with next. </p>
+
+							<h3>Convolutional Neural Network (CNN)</h3>
+							<p>As previously mentioned, the next model I will experiment with is a <b>convolutional neural network</b> built from scratch. A CNN is specifically designed for processing grid-like data, such as <b>images</b>, by using <b>kernels</b> (also referred to as filters or scanners) to extract features, making it more effective in <b>capturing spatial hierarchies</b> compared to a fully-connected neural network. In a CNN, kernels are applied to an input image through <b>convolution operations</b>, extracting features by systematically scanning the image, and producing an <b>output feature map</b> that highlights learned patterns and structures. </p>
+							<p>The model is composed of <b>three convolutional blocks</b>, each initiating with a <b>2D convolutional layer</b> with 64, 128, and 256 filters, followed by a <b>max-pooling</b> layer (for output aggregation), <b>batch normalization</b>, and <b>dropout</b> for regularization in each block. The convolutional layers use ReLU as activation function and zero padding to generate the same output shape. The final layers are composed of a <b>hidden layer</b> with 512 nodes, followed by batch normalization, dropout and a <b>final node for prediction</b>, using <b>sigmoid</b> as activation function. 
+
+							</p>
+
+							<pre ><code   class="language-python">from tensorflow.keras.layers import Conv2D, MaxPooling2D, BatchNormalization
+
+def build_cnn():
+img_in = Input(shape=(256, 256, 2))
+
+# 2D convolution layer with 64 filters that are 3x3 
+# output shape: (None, 256, 256, 64)
+conv1 = Conv2D(64, kernel_size=(3, 3), activation='relu', padding='same')(img_in)
+# pooling layer using max function within a 2x2 window 
+# output shape: (None, 128, 128, 64) 
+pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+# normalization layer - output shape: (None, 128, 128, 64) 
+norm1 = BatchNormalization(axis = -1)(pool1)
+# applies dropout to the input at input rate 
+# output shape: (None, 128, 128, 64)
+drop1 = Dropout(rate=0.2)(norm1)
+
+# 2D convolution layer with 128 filters that are 3x3 
+# output shape: (None, 128, 128, 128)
+conv2 = Conv2D(128, kernel_size=(3, 3), activation='relu', padding='same')(drop1)
+# pooling layer using max function within a 2x2 window 
+# output shape: (None, 64, 64, 128)                             
+pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+# normalization layer - output shape: (None, 64, 64, 128)
+norm2 = BatchNormalization(axis = -1)(pool2)
+# applies dropout to the input - output shape: (None, 64, 64, 128) 
+drop2 = Dropout(rate=0.2)(norm2)
+
+# 2D convolution layer with 256 filters that are 3x3 
+# output shape: (None, 64, 64, 256)
+conv3 = Conv2D(256, kernel_size=(3, 3), activation='relu', padding='same')(drop2)
+# pooling layer using max function within a 2x2 window  
+# output shape: (None, 32, 32, 256)                              
+pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+# normalization layer - output shape: (None, 32, 32, 256)
+norm3 = BatchNormalization(axis = -1)(pool3)
+# applies dropout to the input at input rate 
+# output shape: (None, 32, 32, 256)
+drop3 = Dropout(rate=0.2)(norm3)
+
+# flatten image to 1D array - output shape: (None, 262144)
+flat = Flatten()(drop3)  
+
+# dense layer with 512 nodes, uses ReLU as activation function 
+# output shape: (None, 512)
+hidden1 = Dense(512, activation='relu')(flat)
+# layer that normalizes its inputs - output shape: (None, 512)
+norm4 = BatchNormalization(axis = -1)(hidden1)
+# applies dropout to the input at input rate - output shape: (None, 512)
+drop4 = Dropout(rate=0.2)(norm4)
+
+# single node for prediction, sigmoid as activation function 
+# output shape: (None, 1)
+output = Dense(1, activation='sigmoid')(drop4)  
+
+cnn = tf.keras.Model(inputs=img_in, outputs=output)
+
+return cnn</code></pre>
+
+							<p style="margin: 0; padding: 0;">Due to the small size of the dataset, I will perform <b>data augmentation</b> to improve generalizability of the model and implement <b>k-fold cross validation</b> as the evaluation technique:</p>
+
+							<pre ><code  class="language-python">from sklearn.model_selection import train_test_split, StratifiedKFold
+
+# get folds from training data 
+folds = list(StratifiedKFold(n_splits=10, shuffle=True, 
+			random_state=1).split(x_train, y_train))
+
+# specify image generator - data augmentation
+gen = ImageDataGenerator(horizontal_flip = True, vertical_flip = True,
+						width_shift_range = 0.1, height_shift_range = 0.1,
+						zoom_range = 0.1, rotation_range = 10)</code></pre>
+
+						<p style="margin: 0; padding: 0;">Now we can finish compiling and training the model:</p>
+						<pre><code class="language-python">epochs = 30
+batch_size = 20
+
+cnn = build_cnn()
+
+# use Adam optimizer and binary cross entropy as objective function 
+cnn.compile(optimizer=tf.keras.optimizers.Adam(), loss='binary_crossentropy',
+	metrics=['BinaryAccuracy', 'AUC'])
+
+# train for each fold 
+for j, (train_idx, val_idx) in enumerate(folds):
+
+	# get split data for each fold
+	print('\nFold ',j)
+	X_train_cv = x_train[train_idx]
+	y_train_cv = y_train[train_idx]
+	X_valid_cv = x_train[val_idx]
+	y_valid_cv= y_train[val_idx]
+
+	# data augmentation
+	generator = gen.flow(X_train_cv, y_train_cv, batch_size = batch_size)
+
+	history = cnn.fit(generator, steps_per_epoch=len(X_train_cv)/batch_size,
+				epochs=epochs, shuffle=True, verbose=1,
+				validation_data = (X_valid_cv, y_valid_cv))
+</code></pre>
+							<div style="width: 450px; height: auto;"><img src="images/covid/cnn_plot.png" alt="" style="width: 100%; height: auto;" /></div>
+							<div class="clearfix"></div>
+
+							<p>The performance plots indicate improvement compared to the fully-connected neural network, with the accuracy and AUC reaching levels of 0.85 to 0.9 on the training data. On the testing data, the model achieved an AUC score of 0.65, representing a slight improvement over the previous model.</p>
+
+							<h3>VGG network pre-trained on ImageNet</h3>
+							<p>Content for this section will be updated soon.</p>
+
+							<h3>Resnet50 network pre-trained on ImageNet</h3>
+							<p>Content for this section will be updated soon.</p>
+
+							<h3>Conclusions</h3>
+							<p>Content for this section will be updated soon.</p>
+
+
+							</section>
+
+					</div>
+
+				<!-- Footer -->
+				<footer id="footer">
+					<section class="split contact">
+						<section>
+							<h3>Email</h3>
+							<p><a>nathalia.yun@gmail.com</a></p>
+						</section>
+						<section>
+							<h3>Social</h3>
+							<ul class="icons alt">
+								<li><a href="https://www.linkedin.com/in/nathalia-kim/" target="_blank" class="icon brands alt fa-linkedin"><span class="label">LinkedIn</span></a></li>
+								<li><a href="https://github.com/nathalia-kim" target="_blank" class="icon brands alt fa-github"><span class="label">GitHub</span></a></li>
+							</ul>
+						</section>
+					</section>
+				</footer>
+
+				<!-- Copyright -->
+					<div id="copyright">
+						<ul><li>&copy; Untitled</li><li>Design: <a href="https://html5up.net">HTML5 UP</a></li></ul>
+					</div>
+
+			</div>
+
+		<!-- Scripts -->
+			<script src="assets/js/jquery.min.js"></script>
+			<script src="assets/js/jquery.scrollex.min.js"></script>
+			<script src="assets/js/jquery.scrolly.min.js"></script>
+			<script src="assets/js/browser.min.js"></script>
+			<script src="assets/js/breakpoints.min.js"></script>
+			<script src="assets/js/util.js"></script>
+			<script src="assets/js/main.js"></script>
+
+	</body>
+</html>
