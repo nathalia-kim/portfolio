@@ -192,7 +192,7 @@ model.summary() </code></pre>
 							<div style="width: 450px; height: auto;"><img src="images/covid/fcnn.png" alt="" style="width: 100%; height: auto;" /></div>
 							<div class="clearfix"></div>
 							<p style="margin: 0; padding: 0;" >Now we can <b>train the model</b> for the number of <b>epochs</b> defined below. The <b>batch size</b> is related to the number of samples per gradient update and the <b>validation split</b> defines the fraction of the training data to be used as validation data:</p>
-							<pre style="margin: 0; padding: 0;"><code  style="margin: 0; padding: 0;" class="language-python"># define number of epochs and batch size 
+							<pre><code  style="margin: 0; padding: 0;" class="language-python"># define number of epochs and batch size 
 epochs = 100
 batch_size = 64
 
@@ -317,17 +317,233 @@ for j, (train_idx, val_idx) in enumerate(folds):
 							<div style="width: 450px; height: auto;"><img src="images/covid/cnn_plot.png" alt="" style="width: 100%; height: auto;" /></div>
 							<div class="clearfix"></div>
 
-							<p>The performance plots indicate improvement compared to the fully-connected neural network, with the accuracy and AUC reaching levels of 0.85 to 0.9 on the training data. On the testing data, the model achieved an AUC score of 0.65, representing a slight improvement over the previous model.</p>
+							<p>The performance plots indicate improvement compared to the fully-connected neural network, with the <b>accuracy</b> and <b>AUC</b> reaching levels of 0.85 and 0.9 on the training data, respectively. On the testing data, the model achieved an <b>AUC score</b> of 0.72, representing an <b>improvement over the previous model</b>.</p>
 
-							<h3>VGG network pre-trained on ImageNet</h3>
-							<p>Content for this section will be updated soon.</p>
+							<h3>VGG16 network pre-trained on ImageNet</h3>
+							<p style="margin: 0; padding: 0;">Next, I will employ a technique called <b>transfer learning</b> for training the model. Transfer learning is a machine learning technique which involves taking a pre-trained model from a prior task and fine-tuning it to enhance its generalization capabilities for a different task. To leverage this technique, I explored the <b>VGG16 network</b> (shown below) initially trained on the <b>Imagenet</b> dataset. The model was implemented using a transfer learning approach by loading the neural network and making modifications to specific architecture components and retraining them so the model can generalize to this problem and dataset.</p>
+
+							<div style="width: 85%; height: auto;"><img src="images/vgg16.png" style="width: 85%; height: auto;" alt="" /></div>
+
+							<p style="margin: 0; padding: 0;">First, we need to read the images as RGB:</p>
+
+							<pre><code class="language-python">def load_rgb(folder):
+# create images empty list
+images = []
+# loop through every image in folder
+for file in os.listdir(folder):
+	# get image id by taking filename
+	file_id = file.replace('.png', '')
+	# read image, convert to 8-bit gray scale with alpha and resize
+	image = Image.open(
+		os.path.join(folder, file)
+	).convert('RGB').resize((256, 256))
+	# get numpy array of image
+	arr = np.array(image)
+	# add image id and array to list
+	images.append(
+		(int(file_id), arr)
+	)
+# sort list
+images.sort(key=lambda i: i[0])
+return np.array([v for _id, v in images])
+
+# load train images
+x_train = load_rgb(PARENT_PATH + 'train/train')
+# read train infection labels
+y_train = pd.read_csv(PARENT_PATH + 'y_train.csv')['infection']
+# load test images
+x_test = load_rgb(PARENT_PATH + 'test/test')</code></pre>
+
+								<p style="margin: 0; padding: 0;">As a next step, the model was loaded and modified for <b>fine-tuning</b>. To help with generalization, additional parameters were added for <b>data augmentation</b>. The <b>pre-trained VGG16 model</b> was loaded without the head of the model so we could add our own customized model head. The <b>model head</b> was constructed using an average pooling layer, followed by a flatten layer to get a 1D output, a dense layer with 64 nodes, a dropout layer to reduce <b>overfitting</b>, and a final dense layer with <b>softmax</b> activation function. </p>
+
+								<pre><code class="language-python">from tensorflow.keras.applications import VGG16
+from tensorflow.keras.layers import AveragePooling2D
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import to_categorical
+from sklearn.preprocessing import LabelBinarizer
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+learning_rate = 1e-3
+epochs = 100
+batch_size = 20
+
+# added parameters to the data augmentation object
+trainAug = ImageDataGenerator(
+		rotation_range=20,
+		zoom_range=0.15,
+		width_shift_range=0.2,
+		height_shift_range=0.2,
+		shear_range=0.15,
+		horizontal_flip=True,
+		fill_mode="nearest")
+
+# one-hot encoding on the y_train
+lb = LabelBinarizer()
+labels = lb.fit_transform(y_train)
+labels = to_categorical(labels)
+
+# training (80 percent) and testing (20 percent) splits
+(trainX, testX, trainY, testY) = train_test_split(x_train, labels,
+	test_size=0.20, stratify=labels, random_state=42)
+
+# load the VGG16 network, set FC layer to off
+# output shape: [(None, 256, 256, 3)]
+baseModel = VGG16(weights="imagenet", include_top=False,
+	input_tensor=Input(shape=(256, 256, 3)))
+
+# construct the head of the model that will be placed on top of the
+# the base model
+headModel = baseModel.output
+# pooling layer with average function
+# output shape: (None, 2, 2, 512)
+headModel = AveragePooling2D(pool_size=(4, 4))(headModel)
+# flatten layer to get 1D output
+# output shape: (None, 2048)
+headModel = Flatten(name="flatten")(headModel)
+# dense layer with 64 nodes
+# output shape: (None, 64)
+headModel = Dense(64, activation="relu")(headModel)
+# dropout layer to reduce overfitting
+# output shape: (None, 64)
+headModel = Dropout(0.5)(headModel)
+# dense layer with 2 nodes
+# output shape: (None, 2)
+headModel = Dense(2, activation="softmax")(headModel)
+
+# place the head FC model on top of the base model
+# now we have our final model
+model = Model(inputs=baseModel.input, outputs=headModel)
+
+# loop over all layers in the base model and freeze them so they will
+# not be updated during the first training process
+for layer in baseModel.layers:
+	layer.trainable = False
+
+# compile the model
+print("[INFO] compiling model...")
+# define adam otimizer
+opt = Adam(lr = learning_rate, decay= learning_rate / epochs)
+# compile model with optimizer and evaluate given metrics
+# we are using binary accuracy and AUC as metrics
+model.compile(loss="binary_crossentropy", optimizer=opt,
+	metrics=['BinaryAccuracy', 'AUC'])
+
+# train the head of the model
+# use augmented data
+print("[INFO] training head...")
+history = model.fit_generator(
+	trainAug.flow(trainX, trainY, batch_size=batch_size),
+	steps_per_epoch = len(trainX) // batch_size,
+	validation_data =(testX, testY),
+	validation_steps =len(testX) // batch_size,
+	epochs = epochs)</code></pre>
+
+							<div class="image fit"><img src="images/covid/vgg16_plot.png" alt="" /></div>
+
+							<p>The <b>final VGG16 model</b> achieved an <b>accuracy</b> of 0.75 on the validation set and 0.83 on the training set. In terms of <b>AUC</b>, the model achieved 0.81 on the <b>validation data</b> and AUC of 0.92 on the <b>training data</b>. On the <b>testing set</b>, the model showed an AUC score of 0.81, which is a <b>good improvement compared to the previous CNN model</b>.</p>
 
 							<h3>Resnet50 network pre-trained on ImageNet</h3>
-							<p>Content for this section will be updated soon.</p>
+							<p>The last model that was implemented was the <b>ResNet50</b>, also following a <b>transfer learning </b>approach by loading a model pre-trained on the <b>Imagenet</b>. The ResNet (residual network) is a convolutional neural network with added residual connections, allowing the network to have more convolutional layers while <b>avoiding the vanishing gradient problem</b>. Similarly to the VGG16 model, the pretrained ResNet50 model was loaded and a <b>customized model head</b> was built and connected to the model body: </p>
+
+							<pre><code class="language-python">from tensorflow.keras.applications import ResNet50
+
+batch_size = 10
+epochs = 100
+learning_rate = 1e-5
+
+# one-hot encoding on y_train
+lb = LabelBinarizer()
+labels = lb.fit_transform(y_train)
+labels = to_categorical(labels)
+
+# training (80 percent) and testing (20 percent) splits
+(trainX, testX, trainY, testY) = train_test_split(x_train, labels,
+	test_size=0.20, stratify=labels, random_state=42)
+
+# create data augmentation object
+# list of parameters to apply data augmentation
+trainAug = ImageDataGenerator(
+	rotation_range=15,
+	zoom_range=0.1,
+	width_shift_range=0.1,
+	height_shift_range=0.1,
+	shear_range=0.2,
+	horizontal_flip=True,
+	fill_mode="nearest")
+
+# define mean subtraction
+# set the mean subtraction value to trainAug object
+mean = np.array([123.68, 116.779, 103.939], dtype="float32")
+trainAug.mean = mean
+
+# load the ResNet network, let the head FC layer off
+# output shape: (None, 256, 256, 3)
+print("[INFO] preparing model...")
+baseModel = ResNet50(weights="imagenet", include_top=False,
+	input_tensor=Input(shape=(256, 256, 3)))
+
+# construct the head of the model
+# we will place the head on top of the model afterwards
+headModel = baseModel.output
+
+# pooling layer with average function
+# output shape: (None, 1, 1, 2048)
+headModel = AveragePooling2D(pool_size=(7, 7))(headModel)
+# flatten layer to get 1D array
+# output shape: (None, 2048)
+headModel = Flatten(name="flatten")(headModel)
+# dense layer using ReLU as activation function
+# output shape: (None, 256)
+headModel = Dense(256, activation="relu")(headModel)
+# dropout layer as regularization
+# output shape: (None, 256)
+headModel = Dropout(0.5)(headModel)
+# dense layer with softmas activation function
+# output shape: (None, 2)
+headModel = Dense(2, activation="softmax")(headModel)
+
+# place the head FC model on top of the base model
+model = Model(inputs=baseModel.input, outputs=headModel)
+
+# loop over all layers in the base model and freeze them so they will
+# not be updated during the training process
+for layer in baseModel.layers:
+	layer.trainable = False
+
+# use adam as optimization algorithm
+opt = Adam(lr= learning_rate, decay= learning_rate / epochs)
+# compile the model
+# we are using binary accuracy and AUC as evaluation metrics
+model.compile(loss="binary_crossentropy", optimizer=opt,
+	metrics=['BinaryAccuracy', 'AUC'])
+
+# train the model
+print("[INFO] training model...")
+history = model.fit(
+	trainAug.flow(trainX, trainY, batch_size = batch_size),
+	steps_per_epoch= len(trainX) // batch_size,
+	validation_data=(testX, testY),
+	validation_steps= len(testX) // batch_size,
+	epochs=epochs)</code></pre>
+							
+							<div class="image fit"><img src="images/covid/resnet_plot.png" alt="" /></div>
+
+							<p>The <b>final ResNet50 model</b> achieved an <b>accuracy</b> of 0.77 on the validation set and 0.81 on the training set. In terms of <b>AUC</b>, the model achieved 0.85 on the <b>validation data</b> and AUC of 0.91 on the <b>training data</b>. On the <b>testing set</b>, the model showed an AUC score of 0.87, which shows an <b> improvement compared to the previous VGG16 model</b>.</p>
 
 							<h3>Conclusions</h3>
-							<p>Content for this section will be updated soon.</p>
+							<p>In this project, I built an <b>end-to-end learning framework</b> to predict if a <b>chest X-ray image is COVID-19 positive or negative</b>. I gained a better understanding of the data through <b>exploratory data analysis</b> and built <b>four different neural network architectures</b>, fine-tuning several parameters and evaluating the results. The <b>overall AUC score</b> of each model on <b>unseen, testing data</b> was:</p>
 
+							<ul>
+								<li>Fully-connected neural network built from scratch: <b>0.62</b></li>
+								<li>Convolutional neural network (<b>CNN</b>) built from scratch: <b>0.72</b></li>
+								<li><b>VGG16</b> network pre-trained on ImageNet: <b>0.81</b></li>
+								<li><b>ResNet50</b> network pre-trained on ImageNet: <b>0.87</b></li>
+							</ul>
+
+							<p>The <b>top performing model was the ResNet50</b> network with an AUC of 0.87. It is interesting to note that the <b>complexity of the models increase</b> as we go down the list above, as well as the final model performance. Indeed, a <b>fully-connected neural network</b> is not the most ideal architecture to work with image data as discussed previously, while the <b>ResNet50 architecture provided a considerable innovation</b> in computer vision, allowing the use of residual learning and the skipping of connections.</p>
+
+							<p>Another distinguishing factor of the last two models was the use of the <b>transfer learning technique</b>, leveraging models pretrained on another dataset and <b>fine-tuning</b> them for this data. One notable <b>limitation of this project</b> is the relatively small size of the dataset, which might contribute to the models not achieving a higher performance. Nevertheless, in this project, I designed models from scratch and fine-tuned pre-trained models with increasing levels of complexity. <b>I used a number of techniques in deep learning to successfully build a full pipeline for classification of COVID-19 image data</b>.</p>
 
 							</section>
 
